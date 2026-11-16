@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Facturas de Venta</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .table-sm td, .table-sm th { vertical-align: middle; }
+    .clickable-row { cursor: pointer; }
+  </style>
+</head>
+<body class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Facturas de Venta</h1>
+    <button id="btn-agregar" class="btn btn-success">Agregar</button>
+  </div>
+
+  <!-- Filtros -->
+  <section class="card mb-4">
+    <div class="card-header">Filtros</div>
+    <div class="card-body">
+      <form id="filtros-form" class="row g-2">
+        <div class="col-md-3"><input type="date" id="filtro-fecha-desde" class="form-control" placeholder="Desde"></div>
+        <div class="col-md-3"><input type="date" id="filtro-fecha-hasta" class="form-control" placeholder="Hasta"></div>
+        <div class="col-md-3"><input type="text" id="filtro-estado" class="form-control" placeholder="Estado"></div>
+        <div class="col-md-auto"><button class="btn btn-primary" type="submit">Buscar</button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Listado -->
+  <section class="card">
+    <div class="card-header">Listado</div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead><tr><th>ID</th><th>Nro</th><th>Fecha</th><th>Cliente</th><th>Cond IVA</th><th>PV</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="facturas-tbody"></tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <button id="btn-prev" class="btn btn-outline-secondary">Anterior</button>
+        <span id="pag-info"></span>
+        <button id="btn-next" class="btn btn-outline-secondary">Siguiente</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Factura -->
+  <div class="modal fade" id="modalFactura" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <form id="form-factura">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalFacturaTitulo">Factura</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="factura-id">
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label">Punto de Venta</label>
+                <select id="factura-pv" class="form-select" required></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Condición IVA</label>
+                <select id="factura-ci" class="form-select" required></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Fecha Emisión</label>
+                <input type="date" id="factura-fecha" class="form-control">
+              </div>
+            </div>
+            <div class="row g-3 mb-3 align-items-end">
+              <div class="col-md-8">
+                <label class="form-label">Cliente</label>
+                <div class="input-group">
+                  <input type="hidden" id="factura-cliente-id">
+                  <input type="text" id="factura-cliente-nombre" class="form-control" placeholder="Consumidor Final" readonly>
+                  <button type="button" id="btn-buscar-cliente" class="btn btn-outline-secondary">Buscar</button>
+                  <button type="button" id="btn-limpiar-cliente" class="btn btn-outline-danger">Quitar</button>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Observaciones</label>
+                <input type="text" id="factura-obs" class="form-control">
+              </div>
+            </div>
+
+            <hr>
+            <h6>Ítems</h6>
+            <div class="row g-2 mb-2 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label">Lista de Precios</label>
+                <select id="item-lista-precio" class="form-select"></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Cantidad</label>
+                <input type="number" step="1" min="1" id="item-cant" class="form-control" value="1">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Bonificación %</label>
+                <input type="number" step="0.01" min="0" id="item-bonif" class="form-control" value="0">
+              </div>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-md-10">
+                <label class="form-label">Buscar artículo (en la lista seleccionada)</label>
+                <div class="input-group">
+                  <input type="text" id="item-buscar" class="form-control" placeholder="Código o descripción">
+                  <button type="button" id="btn-buscar-item" class="btn btn-outline-secondary">Buscar</button>
+                </div>
+              </div>
+            </div>
+            <div id="item-resultados" class="list-group mb-2" style="max-height:180px; overflow:auto;"></div>
+            <div class="table-responsive mb-2">
+              <table class="table table-sm table-bordered">
+                <thead class="table-light"><tr><th>Artículo</th><th>Descripción</th><th>Cant.</th><th>Precio</th><th>Bonif %</th><th>Subtotal</th><th></th></tr></thead>
+                <tbody id="items-tbody"></tbody>
+              </table>
+            </div>
+            <div class="text-end"><strong>Total estimado: $ <span id="factura-total">0.00</span></strong></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-guardar">Guardar borrador</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Buscar Cliente -->
+  <div class="modal fade" id="modalCliente" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Buscar Cliente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group mb-3">
+            <input type="text" id="cliente-buscar-input" class="form-control" placeholder="Buscar por CUIT o razón social">
+            <button class="btn btn-primary" type="button" id="btn-cliente-buscar">Buscar</button>
+          </div>
+          <div class="list-group" id="cliente-resultados"></div>
+          <div class="form-text">Se muestran resultados limitados. Refine la búsqueda si es necesario.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
